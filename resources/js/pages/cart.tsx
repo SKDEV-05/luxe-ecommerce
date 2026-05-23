@@ -3,6 +3,7 @@ import StorefrontLayout from '@/layouts/storefront-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trash2, Minus, Plus, ShoppingBag, ArrowRight } from 'lucide-react';
+import ProductImage from '@/components/product-image';
 
 interface CartItem {
     id: number;
@@ -28,6 +29,7 @@ interface CartSummary {
     shipping: number;
     tax: number;
     total: number;
+    delete_tva?: boolean;
 }
 
 interface Props {
@@ -77,17 +79,12 @@ export default function CartPage({ items, summary }: Props) {
                                         <div className="flex items-center gap-6 flex-1">
                                             {/* Product Image */}
                                             <div className="h-24 w-20 shrink-0 bg-stone-100 dark:bg-neutral-900 overflow-hidden relative border border-stone-150 dark:border-neutral-850">
-                                                {item.product.image_url ? (
-                                                    <img 
-                                                        src={item.product.image_url} 
-                                                        alt={item.product.name} 
-                                                        className="h-full w-full object-cover"
-                                                    />
-                                                ) : (
-                                                    <div className="h-full w-full flex items-center justify-center text-xs text-neutral-400">
-                                                        No Image
-                                                    </div>
-                                                )}
+                                                <ProductImage
+                                                    src={item.product.image_url}
+                                                    alt={item.product.name}
+                                                    brandName={item.product.brand?.name}
+                                                    className="h-full w-full object-cover"
+                                                />
                                             </div>
 
                                             {/* Details */}
@@ -168,10 +165,12 @@ export default function CartPage({ items, summary }: Props) {
                                             {summary.shipping === 0 ? 'Complimentary' : formatCurrency(summary.shipping)}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between text-neutral-600 dark:text-stone-300">
-                                        <span>Sales Tax (8%)</span>
-                                        <span className="font-mono">{formatCurrency(summary.tax)}</span>
-                                    </div>
+                                    {!summary.delete_tva && summary.tax > 0 && (
+                                        <div className="flex justify-between text-neutral-600 dark:text-stone-300">
+                                            <span>Sales Tax (8%)</span>
+                                            <span className="font-mono">{formatCurrency(summary.tax)}</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between font-bold text-base border-t border-stone-100 dark:border-neutral-900 pt-4 text-neutral-850 dark:text-stone-100">
                                         <span>Total</span>
                                         <span className="font-mono text-amber-705 dark:text-amber-500">

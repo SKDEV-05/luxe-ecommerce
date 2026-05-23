@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Eye, ShoppingBag } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface Order {
     id: number;
@@ -60,6 +61,20 @@ export default function Index({ orders, filters }: Props) {
         setSearch('');
         setStatus('all');
         router.get('/admin/orders');
+    };
+
+    const handleStatusChange = (orderId: number, newStatus: string) => {
+        router.put(`/admin/orders/${orderId}`, {
+            status: newStatus
+        }, {
+            onSuccess: () => {
+                toast.success('Order status updated successfully');
+            },
+            onError: () => {
+                toast.error('Failed to update status');
+            },
+            preserveScroll: true
+        });
     };
 
     const formatCurrency = (value: string | number) => {
@@ -167,7 +182,22 @@ export default function Index({ orders, filters }: Props) {
                                                     <div className="font-semibold text-neutral-850 dark:text-neutral-200">{order.user?.name || 'Guest'}</div>
                                                     <div className="text-xs font-mono text-neutral-400">{order.user?.email || ''}</div>
                                                 </td>
-                                                <td className="px-6 py-4">{getStatusBadge(order.status)}</td>
+                                                <td className="px-6 py-4">
+                                                    <div className="w-36">
+                                                        <Select defaultValue={order.status} onValueChange={(val) => handleStatusChange(order.id, val)}>
+                                                            <SelectTrigger className="h-8 text-xs border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="pending">Pending</SelectItem>
+                                                                <SelectItem value="processing">Processing</SelectItem>
+                                                                <SelectItem value="shipped">Shipped</SelectItem>
+                                                                <SelectItem value="delivered">Delivered</SelectItem>
+                                                                <SelectItem value="cancelled">Cancelled</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                </td>
                                                 <td className="px-6 py-4 font-mono text-xs text-neutral-500 dark:text-neutral-400">
                                                     {new Date(order.created_at).toLocaleString()}
                                                 </td>

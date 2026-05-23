@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Cart;
+use App\Models\Wishlist;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -39,13 +41,13 @@ class HandleInertiaRequests extends Middleware
         $wishlistCount = 0;
 
         if ($user = $request->user()) {
-            $cart = \App\Models\Cart::where('user_id', $user->id)->first();
-            $cartCount = $cart ? $cart->items()->sum('quantity') : 0;
-            $wishlistCount = \App\Models\Wishlist::where('user_id', $user->id)->count();
+            $cart = Cart::where('user_id', $user->id)->first();
+            $cartCount = $cart ? $cart->items()->count() : 0;
+            $wishlistCount = Wishlist::where('user_id', $user->id)->count();
         } else {
             $sessionId = session()->getId();
-            $cart = \App\Models\Cart::where('session_id', $sessionId)->first();
-            $cartCount = $cart ? $cart->items()->sum('quantity') : 0;
+            $cart = Cart::where('session_id', $sessionId)->first();
+            $cartCount = $cart ? $cart->items()->count() : 0;
         }
 
         return [

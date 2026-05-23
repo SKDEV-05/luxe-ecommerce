@@ -8,9 +8,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-    --font-sans: 'Sora', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
-    --font-serif: 'Playfair Display', Georgia, Cambria, "Times New Roman", Times, serif;
+    --font-serif: 'Outfit', Georgia, Cambria, "Times New Roman", Times, serif;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);

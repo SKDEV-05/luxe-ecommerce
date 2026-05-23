@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Wishlist;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -57,10 +58,10 @@ class StorefrontController extends Controller
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhereHas('brand', function ($b) use ($search) {
-                      $b->where('name', 'like', "%{$search}%");
-                  });
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhereHas('brand', function ($b) use ($search) {
+                        $b->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -145,9 +146,17 @@ class StorefrontController extends Controller
             ->limit(4)
             ->get();
 
+        $isInWishlist = false;
+        if (auth()->check()) {
+            $isInWishlist = Wishlist::where('user_id', auth()->id())
+                ->where('product_id', $product->id)
+                ->exists();
+        }
+
         return Inertia::render('shop/show', [
             'product' => $product,
             'relatedProducts' => $relatedProducts,
+            'isInWishlist' => $isInWishlist,
         ]);
     }
 
@@ -157,7 +166,7 @@ class StorefrontController extends Controller
     public function category(string $slug): Response
     {
         $category = Category::where('slug', $slug)->where('is_active', true)->firstOrFail();
-        
+
         $products = Product::with(['brand', 'category'])
             ->where('is_active', true)
             ->where('category_id', $category->id)
@@ -176,7 +185,7 @@ class StorefrontController extends Controller
     public function brand(string $slug): Response
     {
         $brand = Brand::where('slug', $slug)->firstOrFail();
-        
+
         $products = Product::with(['brand', 'category'])
             ->where('is_active', true)
             ->where('brand_id', $brand->id)

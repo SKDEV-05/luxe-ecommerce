@@ -3,6 +3,9 @@ import StorefrontLayout from '@/layouts/storefront-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowRight, Sparkles, ShieldCheck, Gift, Truck } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import luxeLogo from '@/assets/luxe_logo.png';
+import ProductImage from '@/components/product-image';
 
 interface Category {
     id: number;
@@ -43,14 +46,257 @@ interface Props {
     featuredBrands: Brand[];
 }
 
+const renderBrandLogo = (slug: string) => {
+    switch (slug) {
+        case 'dior':
+            return (
+                <span className="text-2xl md:text-3xl font-serif font-black tracking-[0.15em] text-neutral-850 dark:text-stone-250">
+                    DIOR
+                </span>
+            );
+        case 'chanel':
+            return (
+                <div className="flex flex-col items-center gap-1.5">
+                    <svg className="w-14 h-14 md:w-16 md:h-16 fill-none stroke-neutral-850 dark:stroke-stone-250" viewBox="0 0 40 30" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 16 15 A 8 8 0 1 1 16 7 M 16 15 A 8 8 0 1 0 16 23" strokeWidth="2.5" strokeLinecap="round" />
+                        <path d="M 24 15 A 8 8 0 1 0 24 7 M 24 15 A 8 8 0 1 1 24 23" strokeWidth="2.5" strokeLinecap="round" />
+                    </svg>
+                    <span className="text-[8px] md:text-[9px] font-bold tracking-[0.2em] font-sans text-neutral-850 dark:text-stone-250 uppercase">CHANEL</span>
+                </div>
+            );
+        case 'yves-saint-laurent':
+            return (
+                <div className="flex flex-col items-center">
+                    <span className="text-2xl md:text-3xl font-serif font-black tracking-[-0.05em] text-neutral-850 dark:text-stone-250 leading-none">YSL</span>
+                    <span className="text-[7px] font-bold tracking-[0.2em] text-neutral-500 uppercase mt-1">SAINT LAURENT</span>
+                </div>
+            );
+        case 'tom-ford':
+            return (
+                <div className="border-[1.5px] border-neutral-850 dark:border-stone-300 px-3 py-1">
+                    <span className="text-[13px] md:text-[15px] font-black tracking-[0.15em] text-neutral-850 dark:text-stone-250 uppercase">TOM FORD</span>
+                </div>
+            );
+        case 'guerlain':
+            return (
+                <span className="text-xl md:text-2xl font-serif font-bold italic tracking-wide text-neutral-850 dark:text-stone-250">
+                    Guerlain
+                </span>
+            );
+        case 'la-mer':
+            return (
+                <div className="flex flex-col items-center">
+                    <span className="text-[15px] md:text-[17px] font-serif font-extrabold tracking-[0.15em] text-neutral-850 dark:text-stone-250 leading-none">LA MER</span>
+                    <span className="text-[6px] tracking-widest text-neutral-400 uppercase font-mono mt-0.5">DE L'OCEAN</span>
+                </div>
+            );
+        case 'hermes':
+            return (
+                <div className="flex flex-col items-center">
+                    <span className="text-[14px] md:text-[16px] font-serif font-extrabold tracking-[0.2em] text-neutral-850 dark:text-stone-250 leading-none">HERMÈS</span>
+                    <span className="text-[7px] tracking-widest text-neutral-400 uppercase font-mono mt-0.5">PARIS</span>
+                </div>
+            );
+        case 'cartier':
+            return (
+                <span className="text-2xl md:text-3xl font-serif font-light italic tracking-wider text-neutral-850 dark:text-stone-250">
+                    Cartier
+                </span>
+            );
+        case 'creed':
+            return (
+                <div className="flex flex-col items-center">
+                    <span className="text-[15px] md:text-[17px] font-serif font-bold tracking-[0.15em] text-neutral-850 dark:text-stone-250 leading-none">CREED</span>
+                    <span className="text-[7px] tracking-widest text-neutral-400 uppercase font-mono mt-0.5">1760</span>
+                </div>
+            );
+        case 'louis-vuitton':
+            return (
+                <div className="flex flex-col items-center">
+                    <span className="text-[14px] md:text-[16px] font-serif font-extrabold tracking-[0.15em] text-neutral-850 dark:text-stone-250 leading-none">LOUIS VUITTON</span>
+                    <span className="text-[7px] tracking-[0.2em] text-neutral-400 uppercase font-mono mt-0.5">PARIS</span>
+                </div>
+            );
+        case 'charlotte-tilbury':
+            return (
+                <div className="flex flex-col items-center text-center">
+                    <span className="text-[11px] md:text-[13px] font-extrabold tracking-[0.1em] text-neutral-850 dark:text-stone-250 leading-none">CHARLOTTE</span>
+                    <span className="text-[9px] md:text-[11px] font-bold tracking-[0.1em] text-neutral-850 dark:text-stone-250 leading-none mt-0.5">TILBURY</span>
+                </div>
+            );
+        default:
+            return (
+                <span className="font-serif font-bold text-sm tracking-widest text-neutral-850 dark:text-stone-350 uppercase">
+                    {slug.replace('-', ' ')}
+                </span>
+            );
+    }
+};
+
+function BrandSlider({ brands }: { brands: Brand[] }) {
+    if (brands.length === 0) return null;
+
+    // Build array that holds enough duplicates to fill screen
+    const [items, setItems] = useState(() => {
+        let list = [...brands];
+        while (list.length < 18) {
+            list = [...list, ...brands];
+        }
+        return list;
+    });
+
+    const [isTransitioning, setIsTransitioning] = useState(true);
+    const [visibleItems, setVisibleItems] = useState(6);
+    
+    // Initial translateX set to offset by exactly 1 item width
+    const [translateX, setTranslateX] = useState(-100 / items.length);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 640) {
+                setVisibleItems(2);
+            } else if (window.innerWidth < 1024) {
+                setVisibleItems(4);
+            } else {
+                setVisibleItems(6);
+            }
+        };
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            // Slide left-to-right by moving translateX to 0
+            setIsTransitioning(true);
+            setTranslateX(0);
+
+            // Once the transition finishes, pop the last element to the front and reset the translation
+            setTimeout(() => {
+                setIsTransitioning(false);
+                setItems((prev) => {
+                    const next = [...prev];
+                    const last = next.pop();
+                    if (last) {
+                        next.unshift(last);
+                    }
+                    return next;
+                });
+                // Reset translateX back to one item width offset
+                setTranslateX(-100 / items.length);
+            }, 800);
+        }, 2000);
+
+        return () => clearInterval(interval);
+    }, [brands, items.length]);
+
+    return (
+        <div className="w-full overflow-hidden py-6 relative">
+            {/* Elegant side-fade overlays to blend circular logos into background */}
+            <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-stone-50 to-transparent dark:from-neutral-950 z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-stone-50 to-transparent dark:from-neutral-950 z-10 pointer-events-none" />
+
+            <div 
+                className="flex gap-4 items-center"
+                style={{
+                    transform: `translateX(${translateX}%)`,
+                    transition: isTransitioning ? 'transform 800ms cubic-bezier(0.25, 1, 0.5, 1)' : 'none',
+                    width: `${(items.length / visibleItems) * 100}%`,
+                }}
+            >
+                {items.map((brand, idx) => (
+                    <div 
+                        key={`${brand.id}-${idx}`}
+                        className="flex-shrink-0 flex justify-center"
+                        style={{ width: `${100 / items.length}%` }}
+                    >
+                        <Link
+                            href={`/brands/${brand.slug}`}
+                            className="h-24 flex items-center justify-center transition-all duration-300 hover:scale-110 opacity-70 hover:opacity-100 group"
+                        >
+                            {renderBrandLogo(brand.slug)}
+                        </Link>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 export default function Welcome({ featuredProducts, newArrivals, categories, featuredBrands }: Props) {
+    const [showSplash, setShowSplash] = useState(false);
+    const [fadeOut, setFadeOut] = useState(false);
+    const [zoomLogo, setZoomLogo] = useState(false);
+
+    useEffect(() => {
+        const hasSeenSplash = sessionStorage.getItem('luxe_splash_seen');
+        if (!hasSeenSplash) {
+            setShowSplash(true);
+            
+            // Step 1: Wait for logo to fade in, then start zoom
+            const zoomTimeout = setTimeout(() => {
+                setZoomLogo(true);
+            }, 1500);
+
+            // Step 2: Start fade out of the screen
+            const fadeTimeout = setTimeout(() => {
+                setFadeOut(true);
+            }, 1800);
+
+            // Step 3: Complete splash screen and hide it
+            const endTimeout = setTimeout(() => {
+                setShowSplash(false);
+                sessionStorage.setItem('luxe_splash_seen', 'true');
+            }, 2600);
+
+            return () => {
+                clearTimeout(zoomTimeout);
+                clearTimeout(fadeTimeout);
+                clearTimeout(endTimeout);
+            };
+        }
+    }, []);
+
     const formatCurrency = (value: string | number) => {
         const num = typeof value === 'string' ? parseFloat(value) : value;
         return `${num.toFixed(2)} MAD`;
     };
 
     return (
-        <StorefrontLayout>
+        <>
+            {showSplash && (
+                <div 
+                    className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-stone-950 text-white transition-opacity duration-700 ease-in-out ${
+                        fadeOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                    }`}
+                >
+                    <div className="relative flex flex-col items-center justify-center max-w-xs px-6">
+                        {/* Logo with fade-in and explosive zoom-in transition */}
+                        <img 
+                            src={luxeLogo} 
+                            alt="Luxe Logo" 
+                            className={`w-48 h-auto object-contain transition-transform duration-1000 ease-in-out ${
+                                zoomLogo ? 'scale-[6] opacity-0 blur-xs' : 'scale-100 opacity-100'
+                            }`} 
+                        />
+                        
+                        {/* Subtext that fades away before zoom */}
+                        <div 
+                            className={`text-center mt-6 transition-all duration-550 ease-out ${
+                                zoomLogo ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'
+                            }`}
+                        >
+                            <span className="text-[10px] tracking-[0.3em] text-amber-500 uppercase font-mono block">
+                                HAUTE PARFUMERIE &amp; BEAUTÉ
+                            </span>
+                            <div className="h-0.5 w-12 bg-amber-500/30 mx-auto mt-4 animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <StorefrontLayout>
             <Head title="Haute Parfumerie & Luxury Cosmetics" />
 
             {/* Hero Section */}
@@ -87,29 +333,15 @@ export default function Welcome({ featuredProducts, newArrivals, categories, fea
                 </div>
             </div>
 
-            {/* Brand Houses Grid */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center space-y-10">
+            {/* Brand Houses Carousel Section */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center space-y-8">
                 <div className="space-y-2">
                     <span className="text-xs tracking-[0.2em] text-amber-700 dark:text-amber-500 uppercase font-mono block">Curated Houses</span>
                     <h2 className="text-2xl md:text-3xl font-serif font-bold tracking-tight">The Prestigious Maisons</h2>
                     <div className="h-px w-20 bg-amber-600/30 mx-auto mt-3"></div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-6 gap-6 items-center">
-                    {featuredBrands.map((brand) => (
-                        <Link
-                            key={brand.id}
-                            href={`/brands/${brand.slug}`}
-                            className="p-6 border border-stone-200/60 dark:border-neutral-900 bg-white dark:bg-neutral-950 flex flex-col items-center justify-center h-28 hover:border-amber-600/40 dark:hover:border-amber-500/30 transition-all duration-300 group shadow-xs"
-                        >
-                            <span className="font-serif font-bold text-lg tracking-widest text-neutral-850 dark:text-stone-300 group-hover:text-amber-700 dark:group-hover:text-amber-500 transition-colors uppercase">
-                                {brand.name}
-                            </span>
-                            <span className="text-[9px] tracking-widest text-neutral-400 dark:text-neutral-500 uppercase mt-1 font-mono">
-                                Maison
-                            </span>
-                        </Link>
-                    ))}
-                </div>
+                
+                <BrandSlider brands={featuredBrands} />
             </div>
 
             {/* Featured Products Grid */}
@@ -128,18 +360,13 @@ export default function Welcome({ featuredProducts, newArrivals, categories, fea
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                         {featuredProducts.map((product) => (
                             <Card key={product.id} className="border-stone-200/50 dark:border-neutral-900 bg-white dark:bg-neutral-950 rounded-none overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col h-full group">
-                                <div className="relative aspect-[4/5] bg-stone-100 dark:bg-neutral-900 overflow-hidden">
-                                    {product.image_url ? (
-                                        <img
-                                            src={product.image_url}
-                                            alt={product.name}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-neutral-400">
-                                            No Image
-                                        </div>
-                                    )}
+                                <Link href={`/shop/${product.sku}`} className="relative aspect-[4/5] bg-stone-100 dark:bg-neutral-900 overflow-hidden block">
+                                    <ProductImage
+                                        src={product.image_url}
+                                        alt={product.name}
+                                        brandName={product.brand?.name}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    />
                                     <span className="absolute top-3 left-3 bg-stone-900/70 backdrop-blur-xs text-white text-[9px] font-mono tracking-widest uppercase px-2 py-0.5 rounded-none font-medium">
                                         {product.gender}
                                     </span>
@@ -148,7 +375,7 @@ export default function Welcome({ featuredProducts, newArrivals, categories, fea
                                             Sale
                                         </span>
                                     )}
-                                </div>
+                                </Link>
                                 <CardContent className="p-5 flex-grow flex flex-col justify-between space-y-4">
                                     <div className="space-y-1">
                                         <span className="text-[10px] tracking-widest font-mono text-neutral-450 uppercase block">
@@ -171,7 +398,7 @@ export default function Welcome({ featuredProducts, newArrivals, categories, fea
                                                     <span className="text-xs text-neutral-400 line-through">{formatCurrency(product.price)}</span>
                                                 </div>
                                             ) : (
-                                                <span className="font-semibold text-neutral-800 dark:text-stone-250">{formatCurrency(product.price)}</span>
+                                                <span className="font-semibold text-amber-700 dark:text-amber-500">{formatCurrency(product.price)}</span>
                                             )}
                                         </div>
                                         <Button variant="ghost" size="sm" asChild className="text-xs font-serif text-amber-700 hover:text-amber-800 dark:text-amber-500 hover:bg-stone-50 dark:hover:bg-neutral-900 px-2 py-1 h-auto rounded-none border-b border-transparent hover:border-amber-600">
@@ -268,5 +495,6 @@ export default function Welcome({ featuredProducts, newArrivals, categories, fea
                 </div>
             </div>
         </StorefrontLayout>
+        </>
     );
 }

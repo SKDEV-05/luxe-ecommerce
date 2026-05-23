@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\Product;
+use App\Models\StoreSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,11 +21,11 @@ class CheckoutController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        
+
         // Find cart for the authenticated user
         $cart = Cart::where('user_id', $user->id)->first();
 
-        if (!$cart || $cart->items()->count() === 0) {
+        if (! $cart || $cart->items()->count() === 0) {
             return redirect()->route('shop')->with('error', 'Your shopping cart is empty.');
         }
 
@@ -60,9 +60,9 @@ class CheckoutController extends Controller
             }
         }
 
-        // Simulating shipping and tax
-        $shipping = $subtotal > 150 ? 0.00 : 15.00;
-        $tax = $subtotal * 0.08; // 8% sales tax
+        $settings = StoreSetting::getSettings();
+        $shipping = $settings->delivery_free ? 0.00 : ($subtotal >= $settings->delivery_free_threshold ? 0.00 : $settings->delivery_fee);
+        $tax = $settings->delete_tva ? 0.00 : ($subtotal * 0.08);
         $total = $subtotal + $shipping + $tax;
 
         // Parse user default address if exists
@@ -82,13 +82,14 @@ class CheckoutController extends Controller
                 'shipping' => $shipping,
                 'tax' => $tax,
                 'total' => $total,
+                'delete_tva' => $settings->delete_tva,
             ],
             'user_info' => [
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone ?? '',
                 'address' => $defaultAddress,
-            ]
+            ],
         ]);
     }
 
@@ -98,11 +99,11 @@ class CheckoutController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $user = $request->user();
-        
+
         // Find cart
         $cart = Cart::where('user_id', $user->id)->first();
 
-        if (!$cart || $cart->items()->count() === 0) {
+        if (! $cart || $cart->items()->count() === 0) {
             return redirect()->route('shop')->with('error', 'Your shopping cart is empty.');
         }
 
@@ -115,9 +116,9 @@ class CheckoutController extends Controller
             'shipping_state' => 'required|string|max:100',
             'shipping_postal_code' => 'required|string|max:20',
             'shipping_country' => 'required|string|max:100',
-            
+
             'same_as_shipping' => 'required|boolean',
-            
+
             // Billing fields (required if same_as_shipping is false)
             'billing_address_line_1' => 'required_if:same_as_shipping,false|nullable|string|max:255',
             'billing_address_line_2' => 'nullable|string|max:255',
@@ -125,7 +126,7 @@ class CheckoutController extends Controller
             'billing_state' => 'required_if:same_as_shipping,false|nullable|string|max:100',
             'billing_postal_code' => 'required_if:same_as_shipping,false|nullable|string|max:20',
             'billing_country' => 'required_if:same_as_shipping,false|nullable|string|max:100',
-            
+
             'payment_method' => 'required|string|in:cod',
             'notes' => 'nullable|string|max:1000',
             'save_address' => 'boolean',
@@ -167,8 +168,8 @@ class CheckoutController extends Controller
             // 1. Verify and reserve stock
             foreach ($cart->items as $item) {
                 $product = $item->product;
-                
-                if (!$product || !$product->is_active) {
+
+                if (! $product || ! $product->is_active) {
                     throw new \Exception("Product '{$item->product->name}' is no longer active.");
                 }
 
@@ -194,14 +195,15 @@ class CheckoutController extends Controller
             }
 
             // Calculate costs
-            $shippingCost = $subtotal > 150 ? 0.00 : 15.00;
-            $tax = $subtotal * 0.08;
+            $settings = StoreSetting::getSettings();
+            $shippingCost = $settings->delivery_free ? 0.00 : ($subtotal >= $settings->delivery_free_threshold ? 0.00 : $settings->delivery_fee);
+            $tax = $settings->delete_tva ? 0.00 : ($subtotal * 0.08);
             $total = $subtotal + $shippingCost + $tax;
 
             // 2. Create the Order
             $order = Order::create([
                 'user_id' => $user->id,
-                'order_number' => 'LP-' . strtoupper(Str::random(10)),
+                'order_number' => 'LP-'.strtoupper(Str::random(10)),
                 'status' => 'pending',
                 'subtotal' => $subtotal,
                 'tax' => $tax,
@@ -219,7 +221,7 @@ class CheckoutController extends Controller
             }
 
             // 4. Update user info if requested
-            if ($request->boolean('save_address') || !$user->phone) {
+            if ($request->boolean('save_address') || ! $user->phone) {
                 $user->phone = $validated['phone'];
                 $user->address = [
                     'address_line_1' => $validated['shipping_address_line_1'],
@@ -243,6 +245,7 @@ class CheckoutController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return back()->withInput()->with('error', $e->getMessage());
         }
     }
@@ -277,8 +280,8 @@ class CheckoutController extends Controller
                         'image_url' => $item->product ? $item->product->image_url : null,
                         'brand_name' => $item->product && $item->product->brand ? $item->product->brand->name : null,
                     ];
-                })
-            ]
+                }),
+            ],
         ]);
     }
 }

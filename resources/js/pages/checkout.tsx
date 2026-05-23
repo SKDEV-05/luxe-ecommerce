@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, ArrowLeft, MapPin, Compass } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import ProductImage from '@/components/product-image';
 
 interface CartItem {
     id: number;
@@ -34,6 +35,7 @@ interface CartSummary {
     shipping: number;
     tax: number;
     total: number;
+    delete_tva?: boolean;
 }
 
 interface UserInfo {
@@ -574,11 +576,12 @@ export default function CheckoutPage({ items, summary, user_info }: Props) {
                                     return (
                                         <div key={item.id} className="flex gap-4 py-3 first:pt-0 last:pb-0">
                                             <div className="h-16 w-12 shrink-0 bg-stone-100 dark:bg-neutral-900 border border-stone-150 dark:border-neutral-850 overflow-hidden relative">
-                                                {item.product.image_url ? (
-                                                    <img src={item.product.image_url} alt={item.product.name} className="h-full w-full object-cover" />
-                                                ) : (
-                                                    <div className="h-full w-full flex items-center justify-center text-[10px] text-neutral-400">No Image</div>
-                                                )}
+                                                <ProductImage
+                                                    src={item.product.image_url}
+                                                    alt={item.product.name}
+                                                    brandName={item.product.brand?.name}
+                                                    className="h-full w-full object-cover"
+                                                />
                                             </div>
                                             <div className="flex-grow min-w-0 space-y-0.5">
                                                 <h4 className="font-serif text-xs font-semibold text-neutral-800 dark:text-stone-200 truncate">{item.product.name}</h4>
@@ -603,10 +606,12 @@ export default function CheckoutPage({ items, summary, user_info }: Props) {
                                     <span>Estimated Shipping</span>
                                     <span className="font-mono">{summary.shipping === 0 ? 'Complimentary' : formatCurrency(summary.shipping)}</span>
                                 </div>
-                                <div className="flex justify-between text-neutral-600 dark:text-stone-300">
-                                    <span>Sales Tax (8%)</span>
-                                    <span className="font-mono">{formatCurrency(summary.tax)}</span>
-                                </div>
+                                {!summary.delete_tva && summary.tax > 0 && (
+                                    <div className="flex justify-between text-neutral-600 dark:text-stone-300">
+                                        <span>Sales Tax (8%)</span>
+                                        <span className="font-mono">{formatCurrency(summary.tax)}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between font-bold text-sm border-t border-stone-100 dark:border-neutral-900 pt-4 text-neutral-850 dark:text-stone-100">
                                     <span>Order Total</span>
                                     <span className="font-mono text-amber-705 dark:text-amber-500">{formatCurrency(summary.total)}</span>

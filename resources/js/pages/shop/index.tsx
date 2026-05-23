@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState } from 'react';
 import { ShoppingBag, Star, Package, Filter, X } from 'lucide-react';
+import ProductImage from '@/components/product-image';
 
 interface Product {
     id: number;
@@ -302,17 +303,12 @@ export default function Shop({ products, categories, brands, filters }: Props) {
                                 products.data.map((product) => (
                                     <Card key={product.id} className="border-stone-200/50 dark:border-neutral-900 bg-white dark:bg-neutral-950 rounded-none overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col h-full group">
                                         <Link href={`/shop/${product.sku}`} className="relative aspect-[4/5] bg-stone-100 dark:bg-neutral-900 overflow-hidden block">
-                                            {product.image_url ? (
-                                                <img
-                                                    src={product.image_url}
-                                                    alt={product.name}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-neutral-400">
-                                                    No Image Available
-                                                </div>
-                                            )}
+                                            <ProductImage
+                                                src={product.image_url}
+                                                alt={product.name}
+                                                brandName={product.brand?.name}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            />
                                             <span className="absolute top-3 left-3 bg-stone-900/70 backdrop-blur-xs text-white text-[9px] font-mono tracking-widest uppercase px-2 py-0.5 rounded-none font-medium">
                                                 {product.gender}
                                             </span>
@@ -346,7 +342,7 @@ export default function Shop({ products, categories, brands, filters }: Props) {
                                                             <span className="text-xs text-neutral-400 line-through">{formatCurrency(product.price)}</span>
                                                         </div>
                                                     ) : (
-                                                        <span className="font-semibold text-neutral-800 dark:text-stone-250">{formatCurrency(product.price)}</span>
+                                                        <span className="font-semibold text-amber-700 dark:text-amber-500">{formatCurrency(product.price)}</span>
                                                     )}
                                                 </div>
                                                 <Button variant="ghost" size="sm" asChild className="text-xs font-serif text-amber-700 hover:text-amber-800 dark:text-amber-500 hover:bg-stone-50 dark:hover:bg-neutral-900 px-2 py-1 h-auto rounded-none border-b border-transparent hover:border-amber-600">

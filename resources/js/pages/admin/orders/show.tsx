@@ -180,10 +180,12 @@ export default function Show({ order }: Props) {
                                     <span className="text-neutral-450">Subtotal:</span>
                                     <span className="font-semibold">{formatCurrency(order.subtotal)}</span>
                                 </div>
-                                <div className="flex justify-between">
-                                    <span className="text-neutral-450">Tax (20%):</span>
-                                    <span className="font-semibold">{formatCurrency(order.tax)}</span>
-                                </div>
+                                {parseFloat(order.tax) > 0 && (
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-450">Tax (20%):</span>
+                                        <span className="font-semibold">{formatCurrency(order.tax)}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between">
                                     <span className="text-neutral-450">Shipping & Handling:</span>
                                     <span className="font-semibold">{formatCurrency(order.shipping_cost)}</span>

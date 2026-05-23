@@ -3,6 +3,7 @@ import StorefrontLayout from '@/layouts/storefront-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ShieldCheck, ShoppingBag, Calendar, MapPin } from 'lucide-react';
+import ProductImage from '@/components/product-image';
 
 interface OrderItem {
     id: number;
@@ -96,11 +97,12 @@ export default function OrderConfirmationPage({ order }: Props) {
                             {order.items.map((item) => (
                                 <div key={item.id} className="flex gap-4 py-3 first:pt-0 last:pb-0">
                                     <div className="h-16 w-12 shrink-0 bg-stone-100 dark:bg-neutral-900 border border-stone-150 dark:border-neutral-850 overflow-hidden relative">
-                                        {item.image_url ? (
-                                            <img src={item.image_url} alt={item.product_name} className="h-full w-full object-cover" />
-                                        ) : (
-                                            <div className="h-full w-full flex items-center justify-center text-[10px] text-neutral-400">No Image</div>
-                                        )}
+                                        <ProductImage
+                                            src={item.image_url}
+                                            alt={item.product_name}
+                                            brandName={item.brand_name ?? undefined}
+                                            className="h-full w-full object-cover"
+                                        />
                                     </div>
                                     <div className="flex-grow min-w-0 space-y-0.5">
                                         <h4 className="font-serif text-xs font-semibold text-neutral-800 dark:text-stone-200 truncate">{item.product_name}</h4>

@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import StorefrontLayout from '@/layouts/storefront-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Heart, ShoppingBag, ArrowLeft, ShieldCheck, Sparkles, Gift } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import ProductImage from '@/components/product-image';
 
-interface ProductImage {
+interface ProductGalleryImage {
     id: number;
     image_url: string;
 }
@@ -33,17 +34,22 @@ interface Product {
         name: string;
         slug: string;
     };
-    images: ProductImage[];
+    images: ProductGalleryImage[];
 }
 
 interface Props {
     product: Product;
     relatedProducts: Product[];
+    isInWishlist: boolean;
 }
 
-export default function Show({ product, relatedProducts }: Props) {
+export default function Show({ product, relatedProducts, isInWishlist }: Props) {
+    const { auth } = usePage<any>().props;
     const [quantity, setQuantity] = useState(1);
     const [activeImage, setActiveImage] = useState(product.image_url);
+    const [inWishlist, setInWishlist] = useState(isInWishlist);
+
+    const isLoggedIn = !!auth?.user;
 
     const formatCurrency = (value: string | number) => {
         const num = typeof value === 'string' ? parseFloat(value) : value;
@@ -70,14 +76,21 @@ export default function Show({ product, relatedProducts }: Props) {
     };
 
     const handleAddToWishlist = () => {
+        if (!isLoggedIn) {
+            toast.info('Please sign in to add items to your wishlist.');
+            return;
+        }
+
         router.post('/wishlist', {
             product_id: product.id,
         }, {
+            preserveScroll: true,
             onSuccess: () => {
+                setInWishlist(!inWishlist);
                 toast.success(`${product.name} updated in your wishlist!`);
             },
             onError: () => {
-                toast.error('Could not update wishlist. Please sign in first.');
+                toast.error('Could not update wishlist. Please try again.');
             }
         });
     };
@@ -97,17 +110,12 @@ export default function Show({ product, relatedProducts }: Props) {
                     {/* Left: Product Images */}
                     <div className="space-y-4">
                         <div className="aspect-[4/5] bg-stone-100 dark:bg-neutral-900 border border-stone-200/50 dark:border-neutral-900 overflow-hidden">
-                            {activeImage ? (
-                                <img
-                                    src={activeImage}
-                                    alt={product.name}
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-neutral-455">
-                                    No Image Available
-                                </div>
-                            )}
+                            <ProductImage
+                                src={activeImage}
+                                alt={product.name}
+                                brandName={product.brand?.name}
+                                className="w-full h-full object-cover"
+                            />
                         </div>
 
                         {/* Image Gallery Thumbnails */}
@@ -117,7 +125,7 @@ export default function Show({ product, relatedProducts }: Props) {
                                     onClick={() => setActiveImage(product.image_url)}
                                     className={`h-20 w-20 border shrink-0 overflow-hidden ${activeImage === product.image_url ? 'border-amber-600' : 'border-stone-200'}`}
                                 >
-                                    <img src={product.image_url || ''} alt={product.name} className="h-full w-full object-cover" />
+                                    <ProductImage src={product.image_url} alt={product.name} minimal={true} />
                                 </button>
                                 {product.images.map((img) => (
                                     <button
@@ -125,7 +133,7 @@ export default function Show({ product, relatedProducts }: Props) {
                                         onClick={() => setActiveImage(img.image_url)}
                                         className={`h-20 w-20 border shrink-0 overflow-hidden ${activeImage === img.image_url ? 'border-amber-600' : 'border-stone-200'}`}
                                     >
-                                        <img src={img.image_url} alt={product.name} className="h-full w-full object-cover" />
+                                        <ProductImage src={img.image_url} alt={product.name} minimal={true} />
                                     </button>
                                 ))}
                             </div>
@@ -157,7 +165,7 @@ export default function Show({ product, relatedProducts }: Props) {
                                         <span className="text-sm text-neutral-400 line-through">{formatCurrency(product.price)}</span>
                                     </div>
                                 ) : (
-                                    <span className="font-bold text-neutral-800 dark:text-stone-200">{formatCurrency(product.price)}</span>
+                                    <span className="font-bold text-amber-700 dark:text-amber-500">{formatCurrency(product.price)}</span>
                                 )}
                             </div>
                             <span className="text-xs text-neutral-400 font-mono">SKU: {product.sku}</span>
@@ -208,7 +216,7 @@ export default function Show({ product, relatedProducts }: Props) {
                                             variant="outline"
                                             className="py-6 px-6 rounded-none hover:bg-stone-100 dark:hover:bg-neutral-900 flex items-center justify-center border-stone-300"
                                         >
-                                            <Heart className="h-4 w-4 text-red-500 fill-current" />
+                                            <Heart className={`h-4 w-4 transition-colors duration-200 ${inWishlist ? 'text-red-500 fill-current' : 'text-neutral-500 hover:text-red-500'}`} />
                                         </Button>
                                     </div>
                                 </div>
@@ -222,7 +230,7 @@ export default function Show({ product, relatedProducts }: Props) {
                                         variant="outline"
                                         className="w-full py-6 rounded-none tracking-widest uppercase text-xs font-bold font-serif flex items-center justify-center gap-2 border-stone-300"
                                     >
-                                        <Heart className="h-4 w-4" /> Add to Wishlist
+                                        <Heart className={`h-4 w-4 transition-colors duration-200 ${inWishlist ? 'text-red-500 fill-current' : ''}`} /> {inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
                                     </Button>
                                 </div>
                             )}
@@ -267,15 +275,12 @@ export default function Show({ product, relatedProducts }: Props) {
                             {relatedProducts.map((relProduct) => (
                                 <Card key={relProduct.id} className="border-stone-200/50 dark:border-neutral-900 bg-white dark:bg-neutral-950 rounded-none overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col h-full group">
                                     <Link href={`/shop/${relProduct.sku}`} className="relative aspect-[4/5] bg-stone-100 dark:bg-neutral-900 overflow-hidden block">
-                                        {relProduct.image_url ? (
-                                            <img
-                                                src={relProduct.image_url}
-                                                alt={relProduct.name}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-neutral-400">No Image</div>
-                                        )}
+                                        <ProductImage
+                                            src={relProduct.image_url}
+                                            alt={relProduct.name}
+                                            brandName={relProduct.brand?.name}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                        />
                                         <span className="absolute top-3 left-3 bg-stone-900/70 backdrop-blur-xs text-white text-[9px] font-mono tracking-widest uppercase px-2 py-0.5 rounded-none font-medium">
                                             {relProduct.gender}
                                         </span>
@@ -301,7 +306,7 @@ export default function Show({ product, relatedProducts }: Props) {
                                                     <span className="text-[10px] text-neutral-400 line-through">{formatCurrency(relProduct.price)}</span>
                                                 </div>
                                             ) : (
-                                                <span className="font-semibold text-neutral-800 dark:text-stone-250">{formatCurrency(relProduct.price)}</span>
+                                                <span className="font-semibold text-amber-700 dark:text-amber-500">{formatCurrency(relProduct.price)}</span>
                                             )}
                                         </div>
                                     </CardContent>

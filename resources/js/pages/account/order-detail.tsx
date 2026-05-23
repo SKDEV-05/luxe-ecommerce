@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import ProductImage from '@/components/product-image';
 import { ArrowLeft, MapPin, CreditCard, ShoppingBag, Truck, CheckCircle, Package } from 'lucide-react';
 
 interface OrderItem {
@@ -175,11 +176,12 @@ export default function OrderDetailPage({ order }: Props) {
                                 {order.items.map((item) => (
                                     <div key={item.id} className="flex gap-4 py-4 first:pt-0 last:pb-0">
                                         <div className="h-16 w-12 shrink-0 bg-stone-100 dark:bg-neutral-900 border border-stone-150 dark:border-neutral-850 overflow-hidden relative">
-                                            {item.image_url ? (
-                                                <img src={item.image_url} alt={item.product_name} className="h-full w-full object-cover" />
-                                            ) : (
-                                                <div className="h-full w-full flex items-center justify-center text-[10px] text-neutral-400">No Image</div>
-                                            )}
+                                            <ProductImage
+                                                src={item.image_url}
+                                                alt={item.product_name}
+                                                brandName={item.brand_name ?? undefined}
+                                                className="h-full w-full object-cover"
+                                            />
                                         </div>
                                         <div className="flex-grow min-w-0 space-y-0.5">
                                             <h4 className="font-serif text-xs font-semibold text-neutral-800 dark:text-stone-200 hover:text-amber-700 dark:hover:text-amber-500 transition-colors">
@@ -219,10 +221,12 @@ export default function OrderDetailPage({ order }: Props) {
                                     <span>Shipping</span>
                                     <span className="font-mono">{parseFloat(order.shipping_cost) === 0 ? 'Complimentary' : formatCurrency(order.shipping_cost)}</span>
                                 </div>
-                                <div className="flex justify-between text-neutral-600 dark:text-stone-300">
-                                    <span>Sales Tax (8%)</span>
-                                    <span className="font-mono">{formatCurrency(order.tax)}</span>
-                                </div>
+                                {parseFloat(order.tax) > 0 && (
+                                    <div className="flex justify-between text-neutral-600 dark:text-stone-300">
+                                        <span>Sales Tax (8%)</span>
+                                        <span className="font-mono">{formatCurrency(order.tax)}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between font-bold text-sm border-t border-stone-100 dark:border-neutral-900 pt-3 text-neutral-850 dark:text-stone-100">
                                     <span>Grand Total</span>
                                     <span className="font-mono text-amber-705 dark:text-amber-500">{formatCurrency(order.total)}</span>

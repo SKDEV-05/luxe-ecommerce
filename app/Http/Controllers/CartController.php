@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
+use App\Models\StoreSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,7 +22,7 @@ class CartController extends Controller
             // Check for user cart
             $cart = Cart::where('user_id', $user->id)->first();
 
-            if (!$cart) {
+            if (! $cart) {
                 // Check if there's a guest cart in this session we can adopt
                 $sessionId = session()->getId();
                 $cart = Cart::where('session_id', $sessionId)->first();
@@ -34,6 +35,7 @@ class CartController extends Controller
                     $cart = Cart::create(['user_id' => $user->id]);
                 }
             }
+
             return $cart;
         }
 
@@ -41,9 +43,12 @@ class CartController extends Controller
         $sessionId = session()->getId();
         $cart = Cart::where('session_id', $sessionId)->first();
 
-        if (!$cart) {
+        if (! $cart) {
             $cart = Cart::create(['session_id' => $sessionId]);
         }
+
+        // Store guest cart ID in session so it survives login/session regeneration
+        session(['guest_cart_id' => $cart->id]);
 
         return $cart;
     }
@@ -54,7 +59,7 @@ class CartController extends Controller
     public function index(Request $request): Response
     {
         $cart = $this->getOrCreateCart($request);
-        
+
         // Eager load items and products with brand
         $cart->load(['items.product.brand']);
 
@@ -88,9 +93,17 @@ class CartController extends Controller
             }
         }
 
-        // Simulating shipping and tax
-        $shipping = $subtotal > 150 || $subtotal === 0 ? 0.00 : 15.00;
-        $tax = $subtotal * 0.08; // 8% sales tax
+        $settings = StoreSetting::getSettings();
+
+        // Calculate shipping
+        if ($subtotal === 0 || $settings->delivery_free) {
+            $shipping = 0.00;
+        } else {
+            $shipping = $subtotal >= $settings->delivery_free_threshold ? 0.00 : $settings->delivery_fee;
+        }
+
+        // Calculate tax
+        $tax = $settings->delete_tva ? 0.00 : ($subtotal * 0.08);
         $total = $subtotal + $shipping + $tax;
 
         return Inertia::render('cart', [
@@ -100,7 +113,8 @@ class CartController extends Controller
                 'shipping' => $shipping,
                 'tax' => $tax,
                 'total' => $total,
-            ]
+                'delete_tva' => $settings->delete_tva,
+            ],
         ]);
     }
 
@@ -119,7 +133,7 @@ class CartController extends Controller
 
         $product = Product::findOrFail($productId);
 
-        if (!$product->is_active || $product->stock_quantity < 1) {
+        if (! $product->is_active || $product->stock_quantity < 1) {
             return back()->with('error', 'This product is currently out of stock.');
         }
 
